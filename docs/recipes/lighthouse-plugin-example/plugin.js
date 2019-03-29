@@ -5,15 +5,20 @@
  */
 'use strict';
 
-const browserify = require('browserify');
-const fs = require('fs');
+/** @type {LH.Config.Plugin} */
+module.exports = {
+  // Additional audit to run on information Lighthouse gathered.
+  audits: [{
+    path: 'lighthouse-plugin-example/audits/preload-as.js',
+  }],
 
-const distDir = __dirname + '/../dist';
-const outFile = `${distDir}/report-generator.js`;
-const generatorFilename = `./lighthouse-core/report/report-generator.js`;
-browserify(generatorFilename, {standalone: 'ReportGenerator'})
-  .transform('brfs')
-  .bundle((err, src) => {
-    if (err) throw err;
-    fs.writeFileSync(outFile, src.toString());
-  });
+  // A new category in the report for the new audit's output.
+  category: {
+    title: 'My Plugin Category',
+    description: 'Results for our new plugin category.',
+    auditRefs: [
+      {id: 'preload-as', weight: 1},
+      {id: 'meta-description', weight: 1}, // Can also reference default Lighthouse audits.
+    ],
+  },
+};
