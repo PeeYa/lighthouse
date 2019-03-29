@@ -3570,7 +3570,6 @@
         }
     }, 
     "configSettings": {
-        "channel": "cli", 
         "emulatedFormFactor": "mobile", 
         "locale": "en-US", 
         "onlyCategories": null
