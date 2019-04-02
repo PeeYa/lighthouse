@@ -141,9 +141,8 @@ class Simulator {
 
   /**
    * @param {Node} node
-   * @param {number} queuedTime
    */
-  _markNodeAsReadyToStart(node, queuedTime) {
+  _markNodeAsReadyToStart(node) {
     const firstNodeIndexWithGreaterStartTime = this._cachedNodeListByStartTime
       .findIndex(candidate => candidate.startTime > node.startTime);
     const insertionIndex = firstNodeIndexWithGreaterStartTime === -1 ?
@@ -152,7 +151,6 @@ class Simulator {
 
     this._nodes[NodeState.ReadyToStart].add(node);
     this._nodes[NodeState.NotReadyToStart].delete(node);
-    this._setTimingData(node, {queuedTime});
   }
 
   /**
@@ -186,7 +184,7 @@ class Simulator {
       if (dependencies.some(dep => !this._nodes[NodeState.Complete].has(dep))) continue;
 
       // Otherwise add it to the queue
-      this._markNodeAsReadyToStart(dependent, endTime);
+      this._markNodeAsReadyToStart(dependent);
     }
   }
 
@@ -300,8 +298,7 @@ class Simulator {
       const sizeInMb = (record.resourceSize || 0) / 1024 / 1024;
       timeElapsed = 8 + 20 * sizeInMb - timingData.timeElapsed;
     } else {
-      // If we're estimating time remaining, we already acquired a connection for this record, definitely non-null
-      const connection = /** @type {TcpConnection} */ (this._acquireConnection(record));
+      const connection = this._connectionPool.acquireActiveConnectionFromRecord(record);
       const dnsResolutionTime = this._dns.getTimeUntilResolution(record, {
         requestedAt: timingData.startTime,
         shouldUpdateCache: true,
@@ -352,8 +349,7 @@ class Simulator {
     if (node.type !== BaseNode.TYPES.NETWORK) throw new Error('Unsupported');
 
     const record = node.record;
-    // If we're updating the progress, we already acquired a connection for this record, definitely non-null
-    const connection = /** @type {TcpConnection} */ (this._acquireConnection(record));
+    const connection = this._connectionPool.acquireActiveConnectionFromRecord(record);
     const dnsResolutionTime = this._dns.getTimeUntilResolution(record, {
       requestedAt: timingData.startTime,
       shouldUpdateCache: true,
@@ -446,7 +442,7 @@ class Simulator {
     let iteration = 0;
 
     // root node is always ready to start
-    this._markNodeAsReadyToStart(rootNode, totalElapsedTime);
+    this._markNodeAsReadyToStart(rootNode);
 
     // loop as long as we have nodes in the queue or currently in progress
     while (nodesReadyToStart.size || nodesInProgress.size) {
@@ -503,7 +499,6 @@ module.exports = Simulator;
  * @typedef NodeTimingIntermediate
  * @property {number} [startTime]
  * @property {number} [endTime]
- * @property {number} [queuedTime]
  * @property {number} [estimatedTimeElapsed]
  * @property {number} [timeElapsed]
  * @property {number} [timeElapsedOvershoot]
