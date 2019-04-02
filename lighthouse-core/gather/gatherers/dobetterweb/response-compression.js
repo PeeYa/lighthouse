@@ -40,9 +40,6 @@ class ResponseCompression extends Gatherer {
     const unoptimizedResponses = [];
 
     networkRecords.forEach(record => {
-      // Ignore records from OOPIFs
-      if (record.sessionId) return;
-
       const mimeType = record.mimeType;
       const resourceType = record.resourceType || NetworkRequest.TYPES.Other;
       const resourceSize = record.resourceSize;

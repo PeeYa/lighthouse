@@ -196,11 +196,10 @@ class NetworkRecorder extends EventEmitter {
   // DevTools SDK network layer.
 
   /**
-   * @param {{params: LH.Crdp.Network.RequestWillBeSentEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.RequestWillBeSentEvent} data
    */
-  onRequestWillBeSent(event) {
-    const data = event.params;
-    const originalRequest = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onRequestWillBeSent(data) {
+    const originalRequest = this._findRealRequest(data.requestId);
     // This is a simple new request, create the NetworkRequest object and finish.
     if (!originalRequest) {
       const request = new NetworkRequest();
@@ -236,63 +235,57 @@ class NetworkRecorder extends EventEmitter {
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.RequestServedFromCacheEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.RequestServedFromCacheEvent} data
    */
-  onRequestServedFromCache(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onRequestServedFromCache(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onRequestServedFromCache();
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.ResponseReceivedEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.ResponseReceivedEvent} data
    */
-  onResponseReceived(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onResponseReceived(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onResponseReceived(data);
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.DataReceivedEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.DataReceivedEvent} data
    */
-  onDataReceived(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onDataReceived(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onDataReceived(data);
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.LoadingFinishedEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.LoadingFinishedEvent} data
    */
-  onLoadingFinished(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onLoadingFinished(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onLoadingFinished(data);
     this.onRequestFinished(request);
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.LoadingFailedEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.LoadingFailedEvent} data
    */
-  onLoadingFailed(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onLoadingFailed(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onLoadingFailed(data);
     this.onRequestFinished(request);
   }
 
   /**
-   * @param {{params: LH.Crdp.Network.ResourceChangedPriorityEvent, source?: LH.Protocol.RawSource}} event
+   * @param {LH.Crdp.Network.ResourceChangedPriorityEvent} data
    */
-  onResourceChangedPriority(event) {
-    const data = event.params;
-    const request = this._findRealRequestAndSetSource(data.requestId, event.source);
+  onResourceChangedPriority(data) {
+    const request = this._findRealRequest(data.requestId);
     if (!request) return;
     request.onResourceChangedPriority(data);
   }
@@ -303,13 +296,13 @@ class NetworkRecorder extends EventEmitter {
    */
   dispatch(event) {
     switch (event.method) {
-      case 'Network.requestWillBeSent': return this.onRequestWillBeSent(event);
-      case 'Network.requestServedFromCache': return this.onRequestServedFromCache(event);
-      case 'Network.responseReceived': return this.onResponseReceived(event);
-      case 'Network.dataReceived': return this.onDataReceived(event);
-      case 'Network.loadingFinished': return this.onLoadingFinished(event);
-      case 'Network.loadingFailed': return this.onLoadingFailed(event);
-      case 'Network.resourceChangedPriority': return this.onResourceChangedPriority(event);
+      case 'Network.requestWillBeSent': return this.onRequestWillBeSent(event.params);
+      case 'Network.requestServedFromCache': return this.onRequestServedFromCache(event.params);
+      case 'Network.responseReceived': return this.onResponseReceived(event.params);
+      case 'Network.dataReceived': return this.onDataReceived(event.params);
+      case 'Network.loadingFinished': return this.onLoadingFinished(event.params);
+      case 'Network.loadingFailed': return this.onLoadingFailed(event.params);
+      case 'Network.resourceChangedPriority': return this.onResourceChangedPriority(event.params);
       default: return;
     }
   }
@@ -321,10 +314,9 @@ class NetworkRecorder extends EventEmitter {
    * message is referring.
    *
    * @param {string} requestId
-   * @param {LH.Protocol.RawSource|undefined} source
    * @return {NetworkRequest|undefined}
    */
-  _findRealRequestAndSetSource(requestId, source) {
+  _findRealRequest(requestId) {
     let request = this._recordsById.get(requestId);
     if (!request || !request.isValid) return undefined;
 
@@ -332,7 +324,6 @@ class NetworkRecorder extends EventEmitter {
       request = request.redirectDestination;
     }
 
-    request.setSource(source);
     return request;
   }
 
